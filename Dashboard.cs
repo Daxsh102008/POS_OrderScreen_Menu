@@ -146,9 +146,8 @@ namespace RESTAU
                 if (prompt.ShowDialog() == DialogResult.OK)
                 {
                     string enteredcode = prompt.EnteredPasscode;
-                    string secretPasscode = "PSD";
 
-                    if (enteredcode == secretPasscode)
+                    if (VerifyManagerPasscode(enteredcode))
                     {
                         managerAuthAttempt = 0;
                         MessageBox.Show("Access granted. Welcome, manager!", "Access Granted");
@@ -180,6 +179,23 @@ namespace RESTAU
             }
         }
 
+        // The manager passcode lives in the database (AppSettings, stored hashed)
+        // rather than in this file. Returns false on any DB problem so a failure
+        // can never be mistaken for a successful login.
+        private bool VerifyManagerPasscode(string entered)
+        {
+            try
+            {
+                return DatabaseFunction.VerifyManagerPasscode(entered);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not check the manager passcode: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
         private void btnOrderHistory_Click(object sender, EventArgs e)
         {
             
@@ -188,9 +204,8 @@ namespace RESTAU
                 if (prompt.ShowDialog() == DialogResult.OK)
                 {
                     string enteredcode = prompt.EnteredPasscode;
-                    string secretPasscode = "PSD";
 
-                    if (enteredcode == secretPasscode)
+                    if (VerifyManagerPasscode(enteredcode))
                     {
                         managerAuthAttempt = 0;
                         MessageBox.Show("Access granted. Welcome, manager!", "Access Granted");

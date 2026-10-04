@@ -52,9 +52,11 @@ The database ships with staff accounts and menu data so the app is usable immedi
 
 - **Username:** any username in the `Users` table
 - **Password:** `demo1234`
+- **Manager passcode:** `PSD` — prompted by the Manager Panel and Order History buttons
 
-All passwords in this repository have been reset to that value. The database also
-contains sample menu items, tables and orders.
+All passwords in this repository have been reset to that value, and they are stored
+**hashed**, not as the words above. The database also contains sample menu items,
+tables and orders.
 
 ---
 
@@ -64,6 +66,7 @@ contains sample menu items, tables and orders.
 POS_OrderScreen_Menu/
 ├─ *.cs / *.Designer.cs     one pair per screen
 ├─ App.config               connection string (PosDb)
+├─ PasswordHasher.cs        PBKDF2 hashing and verification
 ├─ POS_DB.mdf               sample database
 ├─ *.resx                   form resources, incl. item images
 └─ Properties/
@@ -71,13 +74,33 @@ POS_OrderScreen_Menu/
 
 ---
 
+## Security
+
+- **Passwords are hashed with PBKDF2-HMAC-SHA256**, 100,000 iterations, with a fresh
+  random 16-byte salt per account. The stored form is
+  `PBKDF2$<iterations>$<salt>$<hash>` and verification is constant-time, so two users
+  with the same password never produce the same stored value. See `PasswordHasher.cs`.
+- **The manager passcode is no longer in the source.** It lives in an `AppSettings`
+  table, stored hashed, and is checked via `DatabaseFunction.VerifyManagerPasscode`.
+  Changing it is one row:
+
+  ```powershell
+  Add-Type -Path .\PasswordHasher.cs
+  $new = [RESTAU.PasswordHasher]::Hash('your-new-passcode')
+  # UPDATE AppSettings SET SettingValue = '<$new>' WHERE SettingKey = 'ManagerPasscode'
+  ```
+
+- **A value that is not a well-formed hash is rejected**, never compared as plaintext,
+  so a leftover legacy row cannot be logged into by coincidence.
+- Schema changes made for this: `Users.password` widened from `nchar(50)` to
+  `nvarchar(200)` to hold a hash, and the `AppSettings` table added.
+
 ## Known limitations / next steps
 
-- **Passwords are stored in plaintext.** The next meaningful change is hashing them
-  (bcrypt or PBKDF2) with a per-user salt.
-- The manager gate in `Dashboard.cs` compares against a **hard-coded passcode**. It should
-  be a per-user role check in the database instead. (Noted rather than hidden — it is
-  visible in this repository.)
+- The manager passcode is a **single shared secret** rather than a per-user permission.
+  A role column on `Users` would be the stronger model.
+- **The demo manager passcode `PSD` is only three characters**, so it is brute-forceable
+  regardless of how well it is hashed. Change it before using this anywhere real.
 - `DatabaseFunction.cs` is a single static helper holding most queries; a repository
   layer would separate data access from the UI.
 - No unit tests yet — the logic in `Payment.cs` is the obvious first target.

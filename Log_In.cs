@@ -1,4 +1,4 @@
-using RESTAU;
+﻿using RESTAU;
 using System.Configuration;
 using System;
 using System.Collections.Generic;
@@ -41,7 +41,9 @@ namespace Login_Registration
             string connectionString = ConfigurationManager.ConnectionStrings["PosDb"].ConnectionString;
 
          
-            string query = "SELECT COUNT(1) FROM Users WHERE username = @Username AND password = @Password";
+            // Passwords are stored as salted PBKDF2 hashes, so the comparison cannot happen
+            // in SQL. Fetch the stored hash for this username and verify it here.
+            string query = "SELECT password FROM Users WHERE username = @Username";
 
             try
             {
@@ -51,15 +53,17 @@ namespace Login_Registration
                     {
                         
                         command.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
-                        command.Parameters.AddWithValue("@Password", txtPassword.Text); 
 
                         connection.Open();
 
-                        
-                        int userCount = Convert.ToInt32(command.ExecuteScalar());
+                        object storedPassword = command.ExecuteScalar();
 
-                        
-                        if (userCount == 1)
+                        bool authenticated =
+                            storedPassword != null &&
+                            storedPassword != DBNull.Value &&
+                            PasswordHasher.Verify(txtPassword.Text, Convert.ToString(storedPassword));
+
+                        if (authenticated)
                         {
                             MessageBox.Show("Login successful! Welcome.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             Dashboard dashboard = new Dashboard();

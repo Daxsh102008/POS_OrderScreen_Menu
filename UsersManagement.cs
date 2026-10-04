@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Configuration;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -34,7 +34,9 @@ namespace RESTAU
 
         private void LoadUsersGrid()
         {
-            string query = "SELECT UserId, username, password FROM Users";
+            // Deliberately NOT selecting password: those are hashes now and there is no
+            // reason for the grid, or anything bound to it, to ever see them.
+            string query = "SELECT UserId, username FROM Users";
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -44,9 +46,6 @@ namespace RESTAU
                     adapter.Fill(dt);
                     dgvUsers.DataSource = dt;
 
-                    // Hide the password column in the grid for basic security
-                    if (dgvUsers.Columns.Contains("Password"))
-                        dgvUsers.Columns["Password"].Visible = false;
                     dgvUsers.AllowUserToAddRows = false;
                 }
             }
@@ -59,7 +58,10 @@ namespace RESTAU
                 DataGridViewRow row = dgvUsers.Rows[e.RowIndex];
                 selectedUserId = Convert.ToInt32(row.Cells["UserId"].Value);
                 txtUsername.Text = row.Cells["Username"].Value.ToString();
-                txtPassword.Text = row.Cells["Password"].Value.ToString();
+
+                // Never load a stored hash into the box. Blank here means
+                // "leave this user's password alone" when Update is pressed.
+                txtPassword.Clear();
             }
         }
 
@@ -85,7 +87,7 @@ namespace RESTAU
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@User", txtUsername.Text);
-                    cmd.Parameters.AddWithValue("@Pass", txtPassword.Text);
+                    cmd.Parameters.AddWithValue("@Pass", PasswordHasher.Hash(txtPassword.Text));
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -123,15 +125,21 @@ namespace RESTAU
 
         private void btnUpdate_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
+            if (selectedUserId == 0 || string.IsNullOrWhiteSpace(txtUsername.Text))
             {
                 MessageBox.Show("Please select a user to update.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string query = "UPDATE Users SET username = @User, password = @Pass WHERE UserId = @Id";
+            // Only rewrite the password when a new one was typed; otherwise leave the
+            // existing hash untouched.
+            bool changingPassword = !string.IsNullOrWhiteSpace(txtPassword.Text);
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string query = changingPassword
+                ? "UPDATE Users SET username = @User, password = @Pass WHERE UserId = @Id"
+                : "UPDATE Users SET username = @User WHERE UserId = @Id";
+
+using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 using (SqlCommand cmd = new SqlCommand(query, conn))
@@ -141,6 +149,10 @@ namespace RESTAU
                     cmd.Parameters.AddWithValue("@Id", selectedUserId);
                     cmd.ExecuteNonQuery();
                 }
+            }
+            if (changingPassword)
+            {
+                MessageBox.Show("Password updated.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             MessageBox.Show($"User '{txtUsername.Text}' has been updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             ClearFields();

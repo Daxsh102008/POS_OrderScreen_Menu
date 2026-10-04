@@ -1,3 +1,4 @@
+﻿using RESTAU;
 using System;
 using System.Configuration;
 using System.Collections.Generic;
@@ -64,7 +65,7 @@ namespace Login_Registration
                     {
                         
                         command.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
-                        command.Parameters.AddWithValue("@Password", txtPassword.Text); // Consider hashing this later!
+                        command.Parameters.AddWithValue("@Password", PasswordHasher.Hash(txtPassword.Text));
 
                         connection.Open();
                         int result = command.ExecuteNonQuery();

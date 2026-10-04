@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +29,41 @@ namespace RESTAU
                     cmd.ExecuteNonQuery();
                 }
             }
+        }
+
+        // ── APP SETTINGS ──────────────────────────────────
+
+        /// <summary>
+        /// Reads a value from the AppSettings table. Returns null when the key is
+        /// missing, so callers can treat "not configured" as "deny".
+        /// </summary>
+        public static string GetSetting(string key)
+        {
+            string query = "SELECT SettingValue FROM AppSettings WHERE SettingKey = @Key";
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Key", key);
+                    object value = cmd.ExecuteScalar();
+                    if (value == null || value == DBNull.Value) return null;
+                    return Convert.ToString(value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks the manager passcode against the hash held in AppSettings.
+        /// The passcode used to be a hard-coded string in Dashboard.cs; it now
+        /// lives in the database, hashed, and can be changed with one UPDATE.
+        /// </summary>
+        public static bool VerifyManagerPasscode(string entered)
+        {
+            string stored = GetSetting("ManagerPasscode");
+            if (string.IsNullOrEmpty(stored)) return false;
+            return PasswordHasher.Verify(entered, stored);
         }
 
         public static void SaveDineInOrder(decimal totalAmount, decimal paidAmount, decimal changeAmount, string paymentType, List<string> orderItems)
