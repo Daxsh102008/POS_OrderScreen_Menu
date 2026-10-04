@@ -1,0 +1,69 @@
+# ============================================================
+#  POS_OrderScreen_Menu — .gitignore
+#  Created 2026-10-04. Rule: build junk and machine-local
+#  files never enter history. Source, assets and schema do.
+# ============================================================
+
+# --- Visual Studio build output ---------------------------------
+bin/
+obj/
+[Ll]og/
+[Ll]ogs/
+
+# --- Visual Studio machine-local state --------------------------
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vsidx
+*.VC.db
+*.VC.VC.opendb
+*.userprefs
+
+# --- Compiled binaries ------------------------------------------
+*.exe
+*.exe.config
+*.dll
+*.pdb
+*.mdb
+*.lib
+*.exp
+*.obj
+
+# --- Resharper / Rider / VS Code --------------------------------
+_ReSharper*/
+*.[Rr]e[Ss]harper
+.idea/
+.vscode/
+
+# --- NuGet / packages -------------------------------------------
+packages/
+*.nupkg
+*.snupkg
+
+# --- Windows / Explorer junk ------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- Editor backups ---------------------------------------------
+*.bak
+*.bak-*
+*.tmp
+*~
+
+# --- Project-specific: orphan databases (not in the .csproj) -----
+projDB.mdf
+projDB_log.ldf
+RestaurantDB.mdf
+RestaurantDB_log.ldf
+
+# --- Local-only: your live DB snapshots. NEVER published. ---------
+# _local/ holds the original POS_DB.mdf with real passwords in it.
+_local/
+
+# --- Generated build log ----------------------------------------
+Output-Build.txt
